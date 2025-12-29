@@ -1,0 +1,49 @@
+import React from 'react';
+import QuoteBanner from '../components/QuoteBanner/QuoteBanner';
+import ContinueReading from '../components/ContinueReading/ContinueReading';
+import StatCards from '../components/StatCards/StatCards';
+import FeaturedBook from '../components/FeaturedBook/FeaturedBook';
+import CommunitySection from '../components/CommunitySection/CommunitySection';
+
+const Home = ({ setView }) => {
+  return (
+    <div style={styles.container}>
+      <div style={styles.mainCol}>
+        <QuoteBanner />
+        <div style={styles.headerRow}>
+          <h3>Continue Reading</h3>
+          <span onClick={() => setView('products')} style={styles.link}>View All →</span>
+        </div>
+        <ContinueReading />
+        <StatCards />
+      </div>
+
+      <div style={styles.sideCol}>
+        <div onClick={() => setView('products')} style={{cursor: 'pointer'}}>
+          <FeaturedBook />
+        </div>
+        <CommunitySection />
+      </div>
+
+      <style>{`
+        @media (max-width: 1100px) {
+          .home-flex { flex-direction: column; }
+          .side-col { width: 100% !important; flex-direction: row !important; display: flex; gap: 20px; }
+        }
+        @media (max-width: 600px) {
+          .side-col { flex-direction: column !important; }
+        }
+      `}</style>
+    </div>
+  );
+};
+
+const styles = {
+  container: { display: 'flex', gap: '30px', flexWrap: 'wrap' },
+  mainCol: { flex: '2', minWidth: '300px' },
+  sideCol: { flex: '1', minWidth: '300px', display: 'flex', flexDirection: 'column', gap: '25px' },
+  headerRow: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: '20px 0' },
+  link: { color: '#FF6B6B', cursor: 'pointer', fontWeight: 'bold', fontSize: '14px' }
+};
+
+export default Home;
