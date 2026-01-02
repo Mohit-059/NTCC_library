@@ -8,6 +8,8 @@ import Products from './pages/Products';
 import Focus from './pages/Focus';
 import ProductDetail from './pages/ProductDetail';
 import Cart from './components/Cart/Cart';
+import Library from './pages/Library';
+import Reader from './components/Reader/Reader';
 
 function App() {
   const [view, setView] = useState('home');
@@ -30,10 +32,12 @@ function App() {
 
   const renderContent = () => {
     switch (view) {
-      case 'home': return <Home setView={setView} />;
+      case 'home': return <Home setView={setView} setSelectedBook={setSelectedBook} />;
       case 'about': return <About />;
-      case 'products': return <Products setView={setView} setSelectedBook={setSelectedBook} addToCart={addToCart} />;
+      case 'products': return <Products setView={setView} setSelectedBook={setSelectedBook} />;
       case 'focus': return <Focus />;
+      case 'library': return <Library setView={setView} setSelectedBook={setSelectedBook} />;
+      case 'reader': return <Reader book={selectedBook} onBack={() => setView('library')} />;
       case 'product-detail': return <ProductDetail book={selectedBook} onBack={() => setView('products')} addToCart={addToCart} />;
       case 'auth': return <Auth onAuthSuccess={(name) => { setUser(name); setView('home'); }} />;
       default: return <Home setView={setView} />;
@@ -47,7 +51,7 @@ function App() {
         
         .sidebar-container { 
           width: 90px; 
-          background: #FF6B6B; 
+          /* background moved to Sidebar component for expansion */
           height: 100vh; 
           position: fixed; 
           left: 0; 
@@ -81,22 +85,23 @@ function App() {
       </div>
 
       <main className="main-content" style={styles.main}>
-        <Header 
-          user={user} 
-          setView={setView} 
-          cartCount={cartItems.length} 
-          onCartClick={() => setIsCartOpen(true)} 
+        <Header
+          user={user}
+          setView={setView}
+          cartCount={cartItems.length}
+          onCartClick={() => setIsCartOpen(true)}
         />
         <div style={{ marginTop: '20px' }}>
           {renderContent()}
         </div>
       </main>
 
-      <Cart 
-        isOpen={isCartOpen} 
-        onClose={() => setIsCartOpen(false)} 
-        cartItems={cartItems} 
+      <Cart
+        isOpen={isCartOpen}
+        onClose={() => setIsCartOpen(false)}
+        cartItems={cartItems}
         onRemove={(idx) => setCartItems(cartItems.filter((_, i) => i !== idx))}
+        onClear={() => setCartItems([])}
       />
     </div>
   );
@@ -104,12 +109,12 @@ function App() {
 
 const styles = {
   appWrapper: { display: 'flex', backgroundColor: '#FF6B6B', minHeight: '100vh' },
-  main: { 
-    flex: 1, 
-    marginLeft: '90px', 
-    backgroundColor: 'white', 
-    borderRadius: '40px 0 0 40px', 
-    padding: '40px', 
+  main: {
+    flex: 1,
+    marginLeft: '90px',
+    backgroundColor: 'white',
+    borderRadius: '40px 0 0 40px',
+    padding: '40px',
     minHeight: '100vh',
     overflowY: 'auto'
   }

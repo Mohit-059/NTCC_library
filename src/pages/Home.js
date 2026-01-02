@@ -5,21 +5,29 @@ import StatCards from '../components/StatCards/StatCards';
 import FeaturedBook from '../components/FeaturedBook/FeaturedBook';
 import CommunitySection from '../components/CommunitySection/CommunitySection';
 
-const Home = ({ setView }) => {
+const Home = ({ setView, setSelectedBook }) => {
   return (
     <div style={styles.container}>
       <div style={styles.mainCol}>
+        {/* Dynamic Greeting */}
+        <div style={{ marginBottom: '20px' }}>
+          <h1 style={{ fontSize: '28px', color: '#333' }}>
+            {new Date().getHours() < 12 ? "Good Morning" : new Date().getHours() < 18 ? "Good Afternoon" : "Good Evening"}, Reader!
+          </h1>
+          <p style={{ color: '#888' }}>Ready to continue where you left off?</p>
+        </div>
+
         <QuoteBanner />
         <div style={styles.headerRow}>
           <h3>Continue Reading</h3>
           <span onClick={() => setView('products')} style={styles.link}>View All →</span>
         </div>
-        <ContinueReading />
+        <ContinueReading setView={setView} setSelectedBook={setSelectedBook} />
         <StatCards />
       </div>
 
       <div style={styles.sideCol}>
-        <div onClick={() => setView('products')} style={{cursor: 'pointer'}}>
+        <div onClick={() => setView('products')} style={{ cursor: 'pointer' }}>
           <FeaturedBook />
         </div>
         <CommunitySection />

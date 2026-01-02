@@ -1,13 +1,15 @@
-import React from 'react';
+import React, { useState } from 'react';
+import PaymentModal from '../PaymentModal/PaymentModal';
 
-const Cart = ({ isOpen, onClose, cartItems, onRemove }) => {
-  const total = cartItems.reduce((acc, item) => acc + parseFloat(item.price.replace('$', '')), 0);
+const Cart = ({ isOpen, onClose, cartItems, onRemove, onClear }) => {
+  const [isPaymentOpen, setIsPaymentOpen] = useState(false);
+  const total = cartItems.reduce((acc, item) => acc + (parseFloat(item.price) || 0), 0);
 
   return (
     <>
       {/* Dark Overlay */}
       {isOpen && <div onClick={onClose} style={styles.overlay} />}
-      
+
       {/* Cart Drawer */}
       <div style={{ ...styles.drawer, right: isOpen ? '0' : '-400px' }}>
         <div style={styles.header}>
@@ -21,10 +23,10 @@ const Cart = ({ isOpen, onClose, cartItems, onRemove }) => {
           ) : (
             cartItems.map((item, index) => (
               <div key={index} style={styles.cartItem}>
-                <img src={item.img || item.image} alt="book" style={styles.itemImg} />
+                <img src={item.cover_url || item.img} alt="book" style={styles.itemImg} />
                 <div style={styles.itemInfo}>
                   <p style={styles.itemTitle}>{item.title}</p>
-                  <p style={styles.itemPrice}>{item.price}</p>
+                  <p style={styles.itemPrice}>₹{item.price}</p>
                 </div>
                 <button onClick={() => onRemove(index)} style={styles.removeBtn}>🗑️</button>
               </div>
@@ -36,14 +38,26 @@ const Cart = ({ isOpen, onClose, cartItems, onRemove }) => {
           <div style={styles.footer}>
             <div style={styles.totalRow}>
               <span>Total:</span>
-              <span>${total.toFixed(2)}</span>
+              <span>₹{total.toFixed(2)}</span>
             </div>
-            <button style={styles.checkoutBtn} onClick={() => alert("Proceeding to Paperless Checkout!")}>
+            <button style={styles.checkoutBtn} onClick={() => setIsPaymentOpen(true)}>
               Checkout
             </button>
           </div>
         )}
       </div>
+
+      {/* Payment Modal */}
+      <PaymentModal
+        isOpen={isPaymentOpen}
+        onClose={() => setIsPaymentOpen(false)}
+        total={total}
+        cartItems={cartItems}
+        onSuccess={() => {
+          onClear();
+          onClose(); // Close Cart too
+        }}
+      />
     </>
   );
 };

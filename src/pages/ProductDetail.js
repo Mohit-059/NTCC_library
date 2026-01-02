@@ -1,36 +1,41 @@
 import React from 'react';
 
-const ProductDetail = ({ book, onBack }) => {
-  // Dummy book data for preview if no book is passed
+const ProductDetail = ({ book, onBack, addToCart }) => {
+  // If no book passed, use a fallback (shouldn't happen in flow)
   const currentBook = book || {
-    title: "The Great Gatsby",
-    author: "F. Scott Fitzgerald",
-    price: "$12.99",
-    description: "A classic novel about the American dream in the 1920s. Paperless version ensures zero trees were harmed.",
-    rating: 4.8,
-    image: "https://m.media-amazon.com/images/I/71FTb9X6wsL.jpg"
+    title: "Loading...",
+    author: "Unknown",
+    price: "0",
+    description: "Please select a book from the store.",
+    rating: 4.5,
+    cover_url: "https://via.placeholder.com/300x450"
   };
 
   return (
     <div style={styles.container}>
       <button onClick={onBack} style={styles.backBtn}>← Back to Store</button>
-      
+
       <div style={styles.content}>
         <div style={styles.imageCol}>
-          <img src={currentBook.image} alt="cover" style={styles.cover} />
+          <img src={currentBook.cover_url} alt="cover" style={styles.cover} />
         </div>
-        
+
         <div style={styles.infoCol}>
           <h1 style={styles.title}>{currentBook.title}</h1>
           <p style={styles.author}>by {currentBook.author}</p>
-          
-          <div style={styles.impactBadge}>🌱 Sustainable Digital Choice</div>
-          
-          <p style={styles.desc}>{currentBook.description}</p>
-          
+
+          <div style={styles.impactBadge}>🌱 Scanned from Original Edition</div>
+
+          <p style={styles.desc}>{currentBook.description || "No description available."}</p>
+
           <div style={styles.priceSection}>
-            <span style={styles.price}>{currentBook.price}</span>
-            <button style={styles.buyBtn}>Purchase E-Book</button>
+            <span style={styles.price}>₹{currentBook.price}</span>
+            <button
+              onClick={() => addToCart(currentBook)}
+              style={styles.buyBtn}
+            >
+              Purchase E-Book
+            </button>
           </div>
         </div>
       </div>

@@ -1,60 +1,124 @@
 import React from 'react';
+import { Home, BookOpen, Library, Clock, Info, LogOut, Book } from 'lucide-react';
 
 const Sidebar = ({ activeView, setView, onLogout }) => {
   const menu = [
-    { id: 'home', icon: '🏠' },
-    { id: 'products', icon: '📚' },
-    { id: 'focus', icon: '⏳' },
-    { id: 'about', icon: '🌱' },
+    { id: 'home', icon: <Home size={24} />, label: 'Home' },
+    { id: 'products', icon: <BookOpen size={24} />, label: 'Store' },
+    { id: 'library', icon: <Library size={24} />, label: 'Library' },
+    { id: 'focus', icon: <Clock size={24} />, label: 'Focus' },
+    { id: 'about', icon: <Info size={24} />, label: 'About' },
   ];
 
   return (
-    <div className="sidebar-inner" style={styles.inner}>
-      <style>{`
-        .sidebar-inner { display: flex; flex-direction: column; align-items: center; height: 100%; width: 100%; }
-        .nav-group { display: flex; flex-direction: column; gap: 25px; flex: 1; justify-content: center; }
-        .logo-box { margin-bottom: 40px; font-size: 24px; padding-top: 20px; }
-        .exit-btn { margin-top: auto; padding-bottom: 30px; cursor: pointer; font-size: 24px; color: white; }
+    <div style={styles.sidebar}>
+      <div style={styles.logoBox}>
+        <Book color="white" size={32} />
+      </div>
 
-        @media (max-width: 768px) {
-          .sidebar-inner { flex-direction: row !important; justify-content: space-around; padding: 0 10px; }
-          .nav-group { flex-direction: row !important; gap: 15px; margin: 0; }
-          .logo-box, .exit-btn { display: none; } /* Hide logo/exit on mobile bar to save space */
-        }
-      `}</style>
-
-      <div className="logo-box">📖</div>
-      
-      <div className="nav-group">
+      <div style={styles.navGroup}>
         {menu.map((item) => (
-          <div 
-            key={item.id} 
+          <div
+            key={item.id}
+            className="nav-item"
             onClick={() => setView(item.id)}
             style={{
-              fontSize: '22px',
-              cursor: 'pointer',
-              padding: '10px',
-              borderRadius: '12px',
-              backgroundColor: activeView === item.id ? 'rgba(255,255,255,0.2)' : 'transparent',
-              color: activeView === item.id ? '#fff' : 'rgba(255,255,255,0.6)'
+              backgroundColor: activeView === item.id ? 'rgba(255,255,255,0.25)' : 'transparent',
+              border: activeView === item.id ? '1px solid rgba(255,255,255,0.3)' : '1px solid transparent',
             }}
           >
             {item.icon}
+            <span className="tooltip">{item.label}</span>
           </div>
-        ))}        
+        ))}
       </div>
 
-      <div className="exit-btn" onClick={onLogout}>↳</div>
-      
+      <div onClick={onLogout} className="nav-item" style={{ marginTop: 'auto' }}>
+        <LogOut size={24} color="rgba(255,255,255,0.8)" />
+        <span className="tooltip">Logout</span>
+      </div>
+
       <style>{`
-        @media (max-width: 768px) { .mobile-only-logout { display: block !important; } }
+        .nav-item {
+          position: relative;
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          width: 50px;
+          height: 50px;
+          border-radius: 12px;
+          cursor: pointer;
+          transition: all 0.3s ease;
+          color: rgba(255, 255, 255, 0.7);
+        }
+        
+        .nav-item:hover {
+          background: rgba(255, 255, 255, 0.15) !important;
+          backdrop-filter: blur(10px);
+          border: 1px solid rgba(255, 255, 255, 0.2) !important;
+          color: white !important;
+          box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+          transform: translateY(-2px);
+        }
+
+        .tooltip {
+          position: absolute;
+          left: 65px;
+          background: rgba(0, 0, 0, 0.8);
+          color: white;
+          padding: 5px 10px;
+          border-radius: 6px;
+          font-size: 12px;
+          opacity: 0;
+          visibility: hidden;
+          transition: opacity 0.2s, transform 0.2s;
+          transform: translateX(-10px);
+          white-space: nowrap;
+          pointer-events: none;
+          z-index: 2000;
+        }
+
+        .nav-item:hover .tooltip {
+          opacity: 1;
+          visibility: visible;
+          transform: translateX(0);
+        }
       `}</style>
     </div>
   );
 };
 
 const styles = {
-  inner: { width: '100%', color: 'white' }
+  sidebar: {
+    height: '100%',
+    width: '90px',
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    padding: '30px 10px',
+    backgroundColor: '#FF6B6B',
+    boxShadow: '4px 0 20px rgba(0,0,0,0.15)',
+    zIndex: 1001,
+    overflow: 'visible' // Allow tooltips to pop out
+  },
+  logoBox: {
+    marginBottom: '50px',
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'center',
+    height: '50px',
+    width: '50px',
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    borderRadius: '15px',
+    backdropFilter: 'blur(5px)'
+  },
+  navGroup: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '20px',
+    alignItems: 'center',
+    width: '100%'
+  }
 };
 
 export default Sidebar;

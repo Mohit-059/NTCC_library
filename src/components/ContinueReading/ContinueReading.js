@@ -1,56 +1,65 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 
-const ContinueReading = () => {
-  const books = [
-    { title: "The Adventures of Tom Sawyer", author: "Mark Twain", progress: 60, image: "https://images-na.ssl-images-amazon.com/images/I/71YdbvS-t9L.jpg" },
-    { title: "The Old Man and the Sea", author: "Ernest Hemingway", progress: 40, image: "https://m.media-amazon.com/images/I/716uY860+6L._AC_UF1000,1000_QL80_.jpg" },
-    { title: "Sherlock Holmes", author: "Arthur Conan Doyle", progress: 85, image: "https://m.media-amazon.com/images/I/719fH8Xn89L._AC_UF1000,1000_QL80_.jpg" },
-    { title: "The Time Machine", author: "H.G. Wells", progress: 20, image: "https://m.media-amazon.com/images/I/718V8f59S7L._AC_UF1000,1000_QL80_.jpg" },
-  ];
+const ContinueReading = ({ setView, setSelectedBook }) => {
+  const [book, setBook] = useState(null);
+
+  useEffect(() => {
+    fetch('http://localhost:5000/api/library?user_id=1')
+      .then(res => res.json())
+      .then(data => {
+        // Find book with highest progress, or just the last purchased one
+        if (data.length > 0) {
+          const latest = data[data.length - 1];
+          // Simple simulation: If progress is 0, show 5% to encourage reading
+          setBook({ ...latest, progress: latest.progress || 5 });
+        }
+      })
+      .catch(err => console.error(err));
+  }, []);
+
+  if (!book) return (
+    <div style={styles.card}>
+      <p style={{ color: '#888' }}>No books in progress. Visit the store!</p>
+    </div>
+  );
 
   return (
-    <div style={styles.section}>
-      <h3 style={styles.title}>Continue Reading</h3>
-      <div style={styles.scrollContainer} className="hide-scrollbar">
-        {books.map((book, index) => (
-          <div key={index} style={styles.card}>
-            <div style={styles.imageWrapper}>
-              <img src={book.image} alt={book.title} style={styles.cover} />
-            </div>
-            <h4 style={styles.bookTitle}>{book.title}</h4>
-            <p style={styles.bookAuthor}>{book.author}</p>
-            <div style={styles.progressBg}>
-              <div style={{ ...styles.progressFill, width: `${book.progress}%` }} />
-            </div>
-          </div>
-        ))}
+    <div style={styles.card}>
+      <div style={styles.imgCol}>
+        <img src={book.cover_url} alt="book" style={styles.cover} />
       </div>
-      <style>{`
-        .hide-scrollbar::-webkit-scrollbar { display: none; }
-        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-      `}</style>
+      <div style={styles.info}>
+        <h4 style={styles.title}>{book.title}</h4>
+        <p style={styles.author}>{book.author}</p>
+        <div style={styles.progressContainer}>
+          <div style={{ ...styles.bar, width: `${book.progress}%` }}></div>
+        </div>
+        <p style={styles.pct}>{book.progress}% Complete</p>
+      </div>
+      <button
+        onClick={() => {
+          setSelectedBook(book);
+          setView('reader');
+        }}
+        style={styles.btn}
+      >
+        Resume
+      </button>
     </div>
   );
 };
 
 const styles = {
-  section: { marginTop: '30px', width: '100%' },
-  title: { color: '#444', marginBottom: '20px', fontSize: '18px', fontWeight: '600' },
-  scrollContainer: { 
-    display: 'flex', 
-    gap: '25px', 
-    overflowX: 'auto', 
-    paddingBottom: '15px',
-    width: '100%',
-    WebkitOverflowScrolling: 'touch' 
-  },
-  card: { minWidth: '140px', width: '140px' },
-  imageWrapper: { width: '100%', height: '190px', borderRadius: '12px', overflow: 'hidden', boxShadow: '0 8px 20px rgba(0,0,0,0.1)' },
+  card: { display: 'flex', gap: '20px', backgroundColor: '#F8F9FA', padding: '20px', borderRadius: '20px', alignItems: 'center' },
+  imgCol: { width: '60px', height: '90px', borderRadius: '10px', overflow: 'hidden', flexShrink: 0 },
   cover: { width: '100%', height: '100%', objectFit: 'cover' },
-  bookTitle: { fontSize: '14px', fontWeight: '700', margin: '12px 0 4px 0', color: '#333' },
-  bookAuthor: { fontSize: '12px', color: '#999', marginBottom: '12px' },
-  progressBg: { width: '100%', height: '4px', backgroundColor: '#eee', borderRadius: '10px' },
-  progressFill: { height: '100%', backgroundColor: '#FF6B6B', borderRadius: '10px' }
+  info: { flex: 1 },
+  title: { fontSize: '16px', marginBottom: '5px' },
+  author: { fontSize: '12px', color: '#888', marginBottom: '10px' },
+  progressContainer: { width: '100%', height: '6px', backgroundColor: '#eee', borderRadius: '3px', marginBottom: '5px' },
+  bar: { height: '100%', backgroundColor: '#FF6B6B', borderRadius: '3px' },
+  pct: { fontSize: '10px', color: '#888', textAlign: 'right' },
+  btn: { padding: '10px 20px', backgroundColor: '#1a1a1a', color: 'white', border: 'none', borderRadius: '10px', cursor: 'pointer', fontSize: '12px' }
 };
 
 export default ContinueReading;
