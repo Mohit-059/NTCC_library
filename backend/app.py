@@ -74,8 +74,56 @@ def login():
     
     return jsonify({"error": "Invalid credentials"}), 401
 
+    return jsonify({"error": "Invalid credentials"}), 401
+
+@app.route('/api/reset_password', methods=['POST'])
+def reset_password():
+    data = request.json
+    email = data.get('email')
+    new_password = data.get('password')
+    
+    if not email or not new_password:
+        return jsonify({"error": "Email and new password required"}), 400
+        
+    conn = get_db_connection()
+    user = conn.execute('SELECT * FROM users WHERE email = ?', (email,)).fetchone()
+    
+    if not user:
+        conn.close()
+        return jsonify({"error": "User not found"}), 404
+        
+    pwd_hash = generate_password_hash(new_password)
+    conn.execute('UPDATE users SET password_hash = ? WHERE email = ?', (pwd_hash, email))
+    conn.commit()
+    conn.close()
+    
+    return jsonify({"success": True})
+
 def split_email(email):
     return email.split('@')[0]
+
+@app.route('/api/user_stats/<int:user_id>', methods=['GET'])
+def user_stats(user_id):
+    conn = get_db_connection()
+    
+    # Check if profile exists, if not create one (Lazy Migration)
+    profile = conn.execute('SELECT streak_days FROM user_profiles WHERE user_id = ?', (user_id,)).fetchone()
+    if not profile:
+        conn.execute('INSERT INTO user_profiles (user_id, streak_days) VALUES (?, 0)', (user_id,))
+        conn.commit()
+        streak = 0
+    else:
+        streak = profile['streak_days']
+    
+    # Count Books Read (Purchases)
+    purchases_count = conn.execute('SELECT COUNT(*) FROM purchases WHERE user_id = ?', (user_id,)).fetchone()[0]
+    
+    conn.close()
+    return jsonify({
+        "streak": streak,
+        "books_read": purchases_count,
+        "joined": "Member" 
+    })
 
 # --- REAL STORE API ---
 
@@ -160,7 +208,7 @@ def purchase_book():
                         'Imported', 
                         'Imported from Global Library',
                         book_data.get('price'),
-                        4.5,
+                        round(random.uniform(3.8, 4.9), 1),
                         book_data.get('cover_url'),
                         book_data.get('year')
                     ))
@@ -220,9 +268,10 @@ def save_onboarding():
 import random
 
 def get_user_interests(user_id):
-    """Analyzes user purchases to find a top author or category."""
+    """Analyzes user purchases OR onboarding preferences to find a top interest."""
     conn = get_db_connection()
-    # Get last 5 purchases
+    
+    # 1. Check Purchase History (Strongest Signal)
     query = '''
         SELECT b.author, b.category, b.title 
         FROM purchases p 
@@ -231,29 +280,54 @@ def get_user_interests(user_id):
         ORDER BY p.purchase_date DESC LIMIT 5
     '''
     history = conn.execute(query, (user_id,)).fetchall()
+    
+    if history:
+        conn.close()
+        # Pick the most recent author or category
+        last_book = history[0]
+        return f"author:{last_book['author']}" if last_book['author'] != 'Unknown' else last_book['category']
+
+    # 2. Check Onboarding Profile (Weak Signal)
+    profile = conn.execute('SELECT fav_genres FROM user_profiles WHERE user_id = ?', (user_id,)).fetchone()
     conn.close()
     
-    if not history:
-        return "bestsellers" # Fallback
-        
-    # Simple logic: Pick the most recent author search
-    last_book = history[0]
-    return f"author:{last_book['author']}" if last_book['author'] != 'Unknown' else last_book['category']
+    if profile and profile['fav_genres']:
+        import ast
+        try:
+            # Parse stored list string e.g. "['sci-fi', 'horror']"
+            genres = ast.literal_eval(profile['fav_genres'])
+            if genres:
+                return f"subject:{random.choice(genres)}"
+        except:
+            pass
+            
+    return "bestsellers" # Fallback if nothing found
 
 def fetch_openlibrary(query, limit=20, offset=0):
-    """Helper to fetch formatted books from OpenLibrary."""
     try:
-        url = f"https://openlibrary.org/search.json?q={query}&language=eng&limit={limit}&offset={offset}&has_fulltext=true"
-        res = requests.get(url).json()
+        # Proper encoding with params
+        params = {
+            'q': query,
+            'language': 'eng',
+            'type': 'edition',
+            'limit': limit,
+            'offset': offset,
+            'has_fulltext': 'true'
+        }
+        res = requests.get("https://openlibrary.org/search.json", params=params).json()
         results = []
         for doc in res.get('docs', []):
             if 'ia' in doc and 'cover_i' in doc:
+                # Strict Language Check
+                if 'eng' not in doc.get('language', []):
+                    continue
+                    
                 # Deterministic Price
                 price_seed = sum(ord(char) for char in doc['title'])
                 price = (price_seed % 500) + 99
                 
                 results.append({
-                    'id': f"ext_{doc.get('key')}",
+                    'id': f"ext_{doc.get('ia')[0]}",
                     'ia_id': doc.get('ia')[0],
                     'title': doc.get('title'),
                     'author': doc.get('author_name', ['Unknown'])[0],
@@ -275,7 +349,7 @@ def get_global_feed():
     
     # 1. AI Recommendation Row
     interest_query = get_user_interests(user_id)
-    recommended = fetch_openlibrary(interest_query)
+    recommended = fetch_openlibrary(interest_query, limit=30)
     
     # 2. Random Discovery Rows
     all_genres = ['thriller', 'romance', 'history', 'science fiction', 'fantasy', 'biography', 'horror', 'business', 'cooking', 'art']
@@ -345,13 +419,122 @@ def interact():
     finally:
         conn.close()
 
+# Helper to handle "ext_" books (lazy import)
+def get_or_create_book(raw_book_id, book_data=None):
+    conn = get_db_connection()
+    c = conn.cursor()
+    
+    # If it's already a local integer ID, we are good
+    if isinstance(raw_book_id, int) or (isinstance(raw_book_id, str) and not raw_book_id.startswith('ext_')):
+        conn.close()
+        return raw_book_id
+        
+    # It's an external book. Check if we already have it by IA ID.
+    ia_id = raw_book_id.replace('ext_', '').replace('/works/', '') # normalize
+    # Try fetching IA ID from book_data if available
+    if book_data and 'ia_id' in book_data:
+        ia_id = book_data['ia_id']
+        
+    existing = c.execute("SELECT id FROM books WHERE ia_id = ?", (ia_id,)).fetchone()
+    if existing:
+        conn.close()
+        return existing['id']
+        
+    # Not found, and we have data? Import it.
+    if book_data:
+        try:
+            c.execute('''
+                INSERT INTO books (ia_id, title, author, category, description, price, rating, cover_url, year)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ''', (
+                ia_id,
+                book_data.get('title'),
+                book_data.get('author'),
+                'Imported', 
+                'Imported from Global Library',
+                book_data.get('price', 199),
+                round(random.uniform(3.8, 4.9), 1),
+                book_data.get('cover_url'),
+                book_data.get('year', 2000)
+            ))
+            new_id = c.lastrowid
+            conn.commit()
+            conn.close()
+            return new_id
+        except Exception as e:
+            print(f"Import Error: {e}")
+            conn.close()
+            return None
+    
+    conn.close()
+    return None
+
+@app.route('/api/search_external', methods=['GET'])
+def search_external():
+    """Proxies search to OpenLibrary for 'Infinite' content."""
+    query = request.args.get('q')
+    if not query or query == "subject:":
+        return jsonify([])
+        
+    # Enforce English language and Edition type using proper params
+    base_url = "https://openlibrary.org/search.json"
+    params = {
+        'q': query,
+        'language': 'eng',
+        'type': 'edition', # Strict edition mode
+        'limit': 20,
+        'has_fulltext': 'true'
+    }
+    
+    try:
+        res = requests.get(base_url, params=params).json()
+        results = []
+        for doc in res.get('docs', []):
+            if 'ia' in doc and 'cover_i' in doc:
+                # Strict Language Check
+                if 'eng' not in doc.get('language', []):
+                    continue
+                    
+                # Deterministic Price Logic (same as ingest)
+                price_seed = sum(ord(char) for char in doc['title'])
+                price = (price_seed % 500) + 99
+                
+                results.append({
+                    'id': f"ext_{doc.get('ia')[0]}", # distinctive ID using IA ID for stability
+                    'ia_id': doc.get('ia')[0],
+                    'title': doc.get('title'),
+                    'author': doc.get('author_name', ['Unknown'])[0],
+                    'cover_url': f"https://covers.openlibrary.org/b/id/{doc.get('cover_i')}-L.jpg",
+                    'price': price,
+                    'year': doc.get('first_publish_year', 2000),
+                    'description': "Imported from Global Library" # Simplified
+                })
+        return results
+    except Exception as e:
+        print(f"External Search Error: {e}")
+        return jsonify([])
+
 @app.route('/api/comments', methods=['GET', 'POST'])
 def comments():
     conn = get_db_connection()
     
     if request.method == 'GET':
-        book_id = request.args.get('book_id')
+        raw_book_id = request.args.get('book_id')
         
+        # Resolve ID if external
+        book_id = raw_book_id
+        if raw_book_id and str(raw_book_id).startswith('ext_'):
+             # Try to find the local ID for this external book
+             # Only works if someone has already interacted with it
+             ia_id = raw_book_id.replace('ext_', '').replace('/works/', '')
+             existing = conn.execute("SELECT id FROM books WHERE ia_id = ?", (ia_id,)).fetchone()
+             if existing:
+                 book_id = existing['id']
+             else:
+                 # If no one imported it yet, there are no comments.
+                 conn.close()
+                 return jsonify({"comments": [], "community_rating": 0, "total_reviews": 0})
+
         # Get comments with user names
         query = '''
             SELECT c.*, u.name as user_name, u.email 
@@ -377,9 +560,17 @@ def comments():
         
     if request.method == 'POST':
         data = request.json
+        
+        # Ensure we have a valid local book ID
+        final_book_id = get_or_create_book(data.get('book_id'), data.get('book_data'))
+        
+        if not final_book_id:
+             conn.close()
+             return jsonify({"success": False, "error": "Could not verify book identity"})
+
         try:
             conn.execute('INSERT INTO comments (user_id, book_id, text, rating) VALUES (?, ?, ?, ?)',
-                         (data['user_id'], data['book_id'], data['text'], data.get('rating', 0)))
+                         (data['user_id'], final_book_id, data['text'], data.get('rating', 0)))
             conn.commit()
             
             # Return the new comment with user info (for optimistic UI)
@@ -398,61 +589,6 @@ def comments():
             conn.close()
             print(f"Comment Error: {e}")
             return jsonify({"success": False, "error": str(e)})
-
-@app.route('/recommend', methods=['GET'])
-def recommend():
-    # ... (Keep existing recommendation logic, but point to DB later)
-    # For now, let's just return random distinct books from DB as 'AI' to keep it fast
-    # or keep usage of the old pandas frame if we still have catalog.json
-    # Let's use the DB for a "real" SQL-based recommendation (e.g. same category)
-    
-    book_title = request.args.get('book_title', '')
-    conn = get_db_connection()
-    
-    # Simple Content-Based: Find books in same category
-    target_book = conn.execute('SELECT category FROM books WHERE title LIKE ?', (f'%{book_title}%',)).fetchone()
-    
-    if target_book:
-        cat = target_book['category']
-        recommendations = conn.execute('SELECT * FROM books WHERE category = ? AND title != ? LIMIT 5', (cat, book_title)).fetchall()
-        return jsonify([dict(row) for row in recommendations])
-    else:
-        # Fallback: Random popular books
-        recommendations = conn.execute('SELECT * FROM books ORDER BY RANDOM() LIMIT 5').fetchall()
-        return jsonify([dict(row) for row in recommendations])
-
-@app.route('/api/search_external', methods=['GET'])
-def search_external():
-    """Proxies search to OpenLibrary for 'Infinite' content."""
-    query = request.args.get('q')
-    if not query:
-        return jsonify([])
-        
-    # Enforce English language to avoid random German/Foreign editions
-    url = f"https://openlibrary.org/search.json?q={query}&language=eng&limit=20&has_fulltext=true"
-    try:
-        res = requests.get(url).json()
-        results = []
-        for doc in res.get('docs', []):
-            if 'ia' in doc and 'cover_i' in doc:
-                # Deterministic Price Logic (same as ingest)
-                price_seed = sum(ord(char) for char in doc['title'])
-                price = (price_seed % 500) + 99
-                
-                results.append({
-                    'id': f"ext_{doc.get('key')}", # distinctive ID
-                    'ia_id': doc.get('ia')[0],
-                    'title': doc.get('title'),
-                    'author': doc.get('author_name', ['Unknown'])[0],
-                    'cover_url': f"https://covers.openlibrary.org/b/id/{doc.get('cover_i')}-L.jpg",
-                    'price': price,
-                    'year': doc.get('first_publish_year', 2000),
-                    'description': "Imported from Global Library" # Simplified
-                })
-        return results
-    except Exception as e:
-        print(f"External Search Error: {e}")
-        return jsonify([])
 
 if __name__ == '__main__':
     app.run(debug=True)

@@ -1,21 +1,44 @@
-import React from 'react';
+import React, { useState } from 'react';
 
-const CommunitySection = () => {
+const CommunitySection = ({ setView }) => {
+  const [email, setEmail] = useState('');
+
+  const handleGo = () => {
+    // For now, redirect to profile to see stats. Real community coming in Phase 8.
+    alert("Community Hub is coming in Phase 8! Creating your profile now...");
+    setView('profile');
+  };
+
+  const handleSubscribe = () => {
+    if (!email) {
+      alert("Please enter an email address.");
+      return;
+    }
+    alert(`Subscribed successfully with ${email}! You'll receive our weekly newsletter.`);
+    setEmail('');
+  };
+
   return (
     <div style={styles.container}>
       {/* Blue Community Card */}
       <div style={styles.blueCard}>
         <div style={styles.content}>
           <h3 style={styles.text}>Join a community of over <span style={styles.bold}>5000 Book Lovers</span></h3>
-          <button style={styles.goBtn}>GO</button>
+          <button onClick={handleGo} style={styles.goBtn}>GO</button>
         </div>
         <div style={styles.shelf}>📚📚📚</div>
       </div>
 
       {/* Subscribe Bar */}
       <div style={styles.subBar}>
-        <input type="text" placeholder="Subscribe to Our Blog" style={styles.input} />
-        <button style={styles.mailBtn}>📧</button>
+        <input
+          type="text"
+          placeholder="Subscribe to Our Blog"
+          style={styles.input}
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+        />
+        <button onClick={handleSubscribe} style={styles.mailBtn}>📧</button>
       </div>
     </div>
   );
@@ -23,12 +46,12 @@ const CommunitySection = () => {
 
 const styles = {
   container: { display: 'flex', flexDirection: 'column', gap: '20px', width: '100%' },
-  blueCard: { 
-    backgroundColor: '#82D8FF', 
-    borderRadius: '24px', 
-    padding: '25px', 
-    color: 'white', 
-    position: 'relative', 
+  blueCard: {
+    backgroundColor: '#82D8FF',
+    borderRadius: '24px',
+    padding: '25px',
+    color: 'white',
+    position: 'relative',
     overflow: 'hidden',
     minHeight: '160px'
   },

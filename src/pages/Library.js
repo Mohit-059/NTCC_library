@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import CONFIG from '../config';
 
 const Library = ({ setView, setSelectedBook }) => {
     const [books, setBooks] = useState([]);
@@ -6,7 +7,7 @@ const Library = ({ setView, setSelectedBook }) => {
 
     useEffect(() => {
         // Hardcoded User ID 1 for demo
-        fetch('http://localhost:5000/api/library?user_id=1')
+        fetch(`${CONFIG.API_BASE_URL}/api/library?user_id=1`)
             .then(res => res.json())
             .then(data => {
                 setBooks(data);

@@ -1,18 +1,22 @@
 import React from 'react';
 
-const FeaturedBook = () => {
+const FeaturedBook = ({ book, onClick }) => {
+  if (!book) return null; // Or a loading skeleton
+
   return (
     <div style={styles.card}>
       <div style={styles.flexContainer}>
-        <img src="https://m.media-amazon.com/images/I/81S88-OThLL._AC_UF1000,1000_QL80_.jpg" alt="Lost World" style={styles.cover} />
+        <img src={book.cover_url} alt={book.title} style={styles.cover} />
         <div style={styles.info}>
-          <p style={styles.question}>Did you read <strong>The Lost World</strong> by Arthur Conan Doyle?</p>
+          <p style={styles.question}>
+            Did you read <strong>{book.title}</strong> by {book.author}?
+          </p>
           <div style={styles.stars}>
-            {['★','★','★','★','☆'].map((s, i) => (
+            {['★', '★', '★', '★', '☆'].map((s, i) => (
               <span key={i} style={{ color: s === '★' ? '#FFD700' : '#DDD', marginRight: '2px' }}>{s}</span>
             ))}
           </div>
-          <button style={styles.btn}>Read Today</button>
+          <button onClick={() => onClick(book)} style={styles.btn}>Read Today</button>
         </div>
       </div>
     </div>
@@ -26,15 +30,16 @@ const styles = {
   info: { flex: '1', minWidth: '140px', display: 'flex', flexDirection: 'column', justifyContent: 'center' },
   question: { fontSize: '14px', color: '#444', lineHeight: '1.5', margin: 0 },
   stars: { margin: '12px 0', fontSize: '18px' },
-  btn: { 
-    backgroundColor: 'white', 
-    border: '1px solid #EAEAEA', 
-    padding: '10px', 
-    borderRadius: '10px', 
-    fontSize: '13px', 
-    fontWeight: '700', 
+  btn: {
+    backgroundColor: 'white',
+    border: '1px solid #EAEAEA',
+    padding: '10px',
+    borderRadius: '10px',
+    fontSize: '13px',
+    fontWeight: '700',
     cursor: 'pointer',
-    boxShadow: '0 2px 4px rgba(0,0,0,0.02)' 
+    boxShadow: '0 2px 4px rgba(0,0,0,0.02)',
+    transition: '0.2s'
   }
 };
 

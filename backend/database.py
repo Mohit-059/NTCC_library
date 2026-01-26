@@ -1,7 +1,16 @@
 import sqlite3
 import os
 
-DB_NAME = "ebook_market.db"
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+# Store DB in the backend directory for consistency, or root. 
+# Let's keep it in the backend folder to avoid cluttering root, but previous logs showed root usage.
+# To match current confirmed working state (app.py from root), let's use the one in root?
+# Actually, better to place it in backend/ folder to be self-contained.
+# ...Wait, the verification showed 133 books in root DB? Let's check the previous tool output first.
+# Safe bet: Use os.path.dirname(__file__) which is 'backend/'. 
+# But if app.py is run from root, 'ebook_market.db' is in root.
+# I will switch to using the ROOT directory explicitly.
+DB_NAME = os.path.join(os.path.dirname(BASE_DIR), "ebook_market.db")
 
 def get_db_connection():
     conn = sqlite3.connect(DB_NAME)

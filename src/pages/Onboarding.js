@@ -23,15 +23,19 @@ const Onboarding = ({ user, onFinish }) => {
         }
     };
 
-    const handleFinish = async () => {
+    const finishOnboarding = async () => {
         setLoading(true);
+        const user = JSON.parse(localStorage.getItem('papero_user')) || { id: 1 };
+
         try {
             // Send to backend
-            await fetch('http://localhost:5000/api/onboarding', {
+            await fetch(`${CONFIG.API_BASE_URL}/api/onboarding`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ user_id: user.id || 1, genres: selected })
+                body: JSON.stringify({ user_id: user.id, genres: selected })
             });
+            // Assuming onFinish should be setView('home') based on context, but following instruction to keep onFinish()
+            // This might be a placeholder for setView('home') or similar.
             onFinish(); // Redirect to Home
         } catch (err) {
             console.error(err);

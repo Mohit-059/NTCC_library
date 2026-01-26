@@ -1,22 +1,30 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import CONFIG from '../../config';
 
 const Reader = ({ book, onBack }) => {
-    const [embedUrl, setEmbedUrl] = useState(null);
+    const [content, setContent] = useState('');
+    const [loading, setLoading] = useState(true);
     const [page, setPage] = useState(book.progress || 0);
 
     useEffect(() => {
-        if (book) {
-            fetch(`http://localhost:5000/api/read/${book.id}`)
+        if (book && book.id) {
+            setLoading(true);
+            fetch(`${CONFIG.API_BASE_URL}/api/read/${book.id}`)
                 .then(res => res.json())
                 .then(data => {
-                    if (data.url) setEmbedUrl(data.url);
+                    setContent(data.content);
+                    setLoading(false);
                 })
-                .catch(err => console.error(err));
+                .catch(err => {
+                    console.error("Failed to load book", err);
+                    setContent("Error loading content. Please try again.");
+                    setLoading(false);
+                });
         }
-    }, [book]);
+    }, [book.id]);
 
     const saveProgress = () => {
-        fetch('http://localhost:5000/api/progress', {
+        fetch(`${CONFIG.API_BASE_URL}/api/progress`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ user_id: 1, book_id: book.id, progress: page })

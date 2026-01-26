@@ -13,7 +13,7 @@ const Header = ({ user, setView, cartCount, onCartClick }) => {
           )}
         </div>
 
-        <div style={styles.notif}>🔔</div>
+        {/* Notification Icon Removed */}
 
         {user ? (
           <div style={styles.profile} onClick={() => setView('auth')}>

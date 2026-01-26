@@ -28,7 +28,7 @@ const ProductDetail = ({ book, onBack, addToCart }) => {
 
   const fetchComments = async () => {
     try {
-      const res = await fetch(`http://localhost:5000/api/comments?book_id=${currentBook.id}`);
+      const res = await fetch(`${CONFIG.API_BASE_URL}/api/comments?book_id=${currentBook.id}`);
       const data = await res.json();
 
       // Handle new API structure { comments: [], community_rating: 4.5 }
@@ -75,7 +75,13 @@ const ProductDetail = ({ book, onBack, addToCart }) => {
       await fetch('http://localhost:5000/api/comments', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ user_id: user.id, book_id: currentBook.id, text: newComment })
+        body: JSON.stringify({
+          user_id: user.id,
+          book_id: currentBook.id,
+          text: newComment,
+          rating: newRating,
+          book_data: currentBook
+        })
       });
     } catch (err) {
       console.error(err);

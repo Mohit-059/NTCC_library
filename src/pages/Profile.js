@@ -1,17 +1,16 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import CONFIG from '../config';
 
-const Profile = ({ user, setView }) => {
-    const [stats, setStats] = useState(null);
+const Profile = ({ onLogout }) => {
+    const [user, setUser] = useState(JSON.parse(localStorage.getItem('papero_user')));
+    const [stats, setStats] = useState({ streak_days: 0, books_read: 0, pages_read: 0 });
 
     useEffect(() => {
-        // In a real app, we would fetch user stats (streaks, badges) here
-        // For now, let's mock it or use what we have
         if (user) {
-            setStats({
-                streak: 0,
-                booksRead: 0,
-                joined: new Date().toLocaleDateString()
-            });
+            fetch(`${CONFIG.API_BASE_URL}/api/user_stats/${user.id}`)
+                .then(res => res.json())
+                .then(data => setStats(data))
+                .catch(err => console.error("Failed to fetch stats", err));
         }
     }, [user]);
 
@@ -47,6 +46,22 @@ const Profile = ({ user, setView }) => {
                 </div>
 
                 <div style={styles.section}>
+                    <h3>Integrations</h3>
+                    <div style={styles.integrationBox}>
+                        <div>
+                            <h4 style={{ margin: 0 }}>🏛️ Internet Archive</h4>
+                            <p style={{ margin: '5px 0', fontSize: '12px', color: '#666' }}>Connect to borrow copyright books directly.</p>
+                        </div>
+                        <button
+                            onClick={() => window.open('https://archive.org/account/login', '_blank')}
+                            style={styles.connectBtn}
+                        >
+                            Connect Account
+                        </button>
+                    </div>
+                </div>
+
+                <div style={styles.section}>
                     <h3>Settings</h3>
                     <button onClick={() => setView('onboarding')} style={styles.actionBtn}>
                         Restart Onboarding (Pick Genres)
@@ -70,8 +85,10 @@ const styles = {
     statBox: { background: '#f8f9fa', padding: '20px', borderRadius: '15px', textAlign: 'center' },
     statValue: { fontSize: '24px', fontWeight: 'bold', color: '#2c3e50' },
     statLabel: { color: '#95a5a6', fontSize: '14px' },
-    section: { borderTop: '1px solid #eee', paddingTop: '20px' },
-    actionBtn: { padding: '10px 20px', background: '#333', color: 'white', border: 'none', borderRadius: '10px', cursor: 'pointer', fontWeight: 'bold' }
+    section: { borderTop: '1px solid #eee', paddingTop: '20px', marginTop: '20px' },
+    integrationBox: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#f0f0f0', padding: '15px', borderRadius: '10px', marginBottom: '20px' },
+    connectBtn: { padding: '8px 15px', background: '#333', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '12px' },
+    actionBtn: { padding: '10px 20px', background: '#eee', color: '#333', border: 'none', borderRadius: '10px', cursor: 'pointer', fontWeight: 'bold' }
 };
 
 export default Profile;

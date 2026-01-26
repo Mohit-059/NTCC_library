@@ -9,19 +9,26 @@ from database import DB_NAME, get_db_connection, init_db
 SUBJECTS = ["thriller", "romance", "fantasy", "science_fiction", "history", "biography"]
 
 def fetch_books_by_subject(subject, limit=20):
-    url = f"https://openlibrary.org/search.json?subject={subject}&limit={limit}&has_fulltext=true"
+    url = "https://openlibrary.org/search.json"
+    params = {
+        'subject': subject,
+        'language': 'eng',
+        'type': 'edition',
+        'limit': limit,
+        'has_fulltext': 'true'
+    }
     try:
         print(f"Fetching {subject}...")
-        res = requests.get(url).json()
+        res = requests.get(url, params=params).json()
         return res.get('docs', [])
     except Exception as e:
         print(f"Error fetching {subject}: {e}")
         return []
 
 def seed_database():
-    if os.path.exists(DB_NAME):
-        os.remove(DB_NAME) # Clean slate
-    init_db()
+    # if os.path.exists(DB_NAME):
+    #     os.remove(DB_NAME) # Clean slate
+    # init_db()
     
     conn = get_db_connection()
     c = conn.cursor()
@@ -72,7 +79,7 @@ def seed_database():
                 book['category'],
                 f"A classic {book['category']} title: {book['title']}.",
                 price,
-                4.5,
+                round(random.uniform(3.8, 4.9), 1),
                 cover_url,
                 book['year']
             ))
@@ -81,7 +88,11 @@ def seed_database():
             pass # Skip duplicates
 
     # Create Demo User
-    c.execute("INSERT INTO users (id, name, email, password_hash) VALUES (1, 'Fahim H.', 'user@test.com', 'hash')")
+    # Create Demo User (Optional)
+    try:
+        c.execute("INSERT INTO users (id, name, email, password_hash) VALUES (1, 'Fahim H.', 'user@test.com', 'hash')")
+    except sqlite3.IntegrityError:
+        print("User already exists, skipping...")
     
     conn.commit()
     conn.close()

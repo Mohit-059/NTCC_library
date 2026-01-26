@@ -12,17 +12,40 @@ const Products = ({ setView, setSelectedBook }) => {
   const [loadingFeed, setLoadingFeed] = React.useState(false);
 
   React.useEffect(() => {
-    loadLocalBooks();
+    // 1. Check for explicit navigation hint (from "View All")
+    const tabHint = localStorage.getItem('store_tab');
+    if (tabHint === 'global') {
+      setIsGlobal(true);
+      localStorage.removeItem('store_tab'); // Consume hint
+      return;
+    }
+
+    // 2. Fallback to last used mode
+    const savedMode = localStorage.getItem('store_mode');
+    if (savedMode === 'global') {
+      setIsGlobal(true);
+    } else {
+      loadLocalBooks();
+    }
   }, []);
 
-  // Fetch Global Feed when switching to Global Mode
+  // Fetch Global Feed (with Caching)
   React.useEffect(() => {
     if (isGlobal && !term && !globalFeed) {
+
+      // Try Cache First
+      const cached = sessionStorage.getItem('global_feed_cache');
+      if (cached) {
+        setGlobalFeed(JSON.parse(cached));
+        return;
+      }
+
       setLoadingFeed(true);
-      fetch('http://localhost:5000/api/global_feed?user_id=1')
+      fetch(`${CONFIG.API_BASE_URL}/api/global_feed?user_id=1`)
         .then(res => res.json())
         .then(data => {
           setGlobalFeed(data);
+          sessionStorage.setItem('global_feed_cache', JSON.stringify(data)); // Cache it
           setLoadingFeed(false);
         })
         .catch(err => {
@@ -87,6 +110,8 @@ const Products = ({ setView, setSelectedBook }) => {
     setIsGlobal(wantGlobal);
     setTerm('');
     setLoading(false); // Reset loading state
+
+    localStorage.setItem('store_mode', mode); // Persist selection
 
     if (!wantGlobal) {
       loadLocalBooks();

@@ -13,8 +13,11 @@ import Reader from './components/Reader/Reader';
 import Profile from './pages/Profile';
 import Onboarding from './pages/Onboarding';
 
+import LandingPage from './pages/LandingPage';
+
 function App() {
-  const [view, setView] = useState('home');
+  // Default to landing page
+  const [view, setView] = useState('landing');
   const [user, setUser] = useState(null);
   const [selectedBook, setSelectedBook] = useState(null);
   const [isCartOpen, setIsCartOpen] = useState(false);
@@ -25,8 +28,11 @@ function App() {
     const savedUser = localStorage.getItem('papero_user');
     if (savedUser) {
       setUser(JSON.parse(savedUser));
+      setView('home'); // Go to home if logged in
     }
   }, []);
+
+
 
   const addToCart = (book) => {
     setCartItems([...cartItems, book]);
@@ -49,6 +55,7 @@ function App() {
 
   const renderContent = () => {
     switch (view) {
+      case 'landing': return <LandingPage setView={setView} />;
       case 'home': return <Home setView={setView} setSelectedBook={setSelectedBook} />;
       case 'about': return <About />;
       case 'products': return <Products setView={setView} setSelectedBook={setSelectedBook} />;
@@ -59,7 +66,7 @@ function App() {
       case 'profile': return <Profile user={user} setView={setView} />;
       case 'auth': return <Auth onAuthSuccess={handleLogin} />;
       case 'onboarding': return <Onboarding user={user} onFinish={() => setView('home')} />;
-      default: return <Home setView={setView} />;
+      default: return <LandingPage setView={setView} />;
     }
   };
 
@@ -99,21 +106,27 @@ function App() {
         }
       `}</style>
 
-      <div className="sidebar-container">
-        <Sidebar activeView={view} setView={setView} onLogout={handleLogout} />
-      </div>
+      {view === 'landing' ? (
+        <LandingPage setView={setView} />
+      ) : (
+        <>
+          <div className="sidebar-container">
+            <Sidebar activeView={view} setView={setView} onLogout={handleLogout} />
+          </div>
 
-      <main className="main-content" style={styles.main}>
-        <Header
-          user={user}
-          setView={setView}
-          cartCount={cartItems.length}
-          onCartClick={() => setIsCartOpen(true)}
-        />
-        <div style={{ marginTop: '20px' }}>
-          {renderContent()}
-        </div>
-      </main>
+          <main className="main-content" style={styles.main}>
+            <Header
+              user={user}
+              setView={setView}
+              cartCount={cartItems.length}
+              onCartClick={() => setIsCartOpen(true)}
+            />
+            <div style={{ marginTop: '20px' }}>
+              {renderContent()}
+            </div>
+          </main>
+        </>
+      )}
 
       <Cart
         isOpen={isCartOpen}

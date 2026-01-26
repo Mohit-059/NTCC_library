@@ -22,7 +22,7 @@ const PaymentModal = ({ isOpen, onClose, total, cartItems, onSuccess }) => {
             let allSuccess = true;
             for (const item of cartItems) {
                 console.log("Purchasing book:", item.id);
-                const res = await fetch('http://localhost:5000/api/purchase', {
+                const res = await fetch(`${CONFIG.API_BASE_URL}/api/purchase`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
